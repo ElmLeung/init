@@ -33,7 +33,7 @@ spec:
         - tail -f /dev/null
         image: busybox
         imagePullPolicy: Always
-        name: 
+        name: presentation
       restartPolicy: Always
 ---
 #第三题
