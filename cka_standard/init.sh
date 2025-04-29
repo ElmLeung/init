@@ -1,6 +1,6 @@
 #!/bin/bash
 
-k3d cluster create CkaCluster01 --agents 2 
+k3d cluster create CkaCluster01 --agents 2  --k3s-arg "--disable=local-storage@server:*"
 
 # Change to the latest supported snapshotter release branch
 SNAPSHOTTER_BRANCH=release-6.3
