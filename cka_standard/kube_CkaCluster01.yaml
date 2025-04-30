@@ -189,8 +189,8 @@ data:
         }
 
         location / {
-            root /usr/share/nginx/html;
-            index index.html;
+            default_type text/plain;
+            return 200 "easylearning.vip\n";
         }
     }
 ---

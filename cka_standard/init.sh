@@ -14,10 +14,11 @@ kubectl apply -f nginx_deploy.yaml
 kubectl wait -n ingress-nginx --for=condition=ready `kubectl get pods -n ingress-nginx -o name|grep controller` --timeout=180s
 # 部署题目
 kubectl config use-context k3d-CkaCluster01
-kubectl apply -f kube-CkaCluster01.yaml
+kubectl apply -f kube_CkaCluster01.yaml
 
 kubectl label pods -n kube-system --all exam-task=cka-demo
 kubectl label nodes k3d-ckacluster01-agent-0 exam-task=cka-demo
 kubectl label nodes k3d-ckacluster01-server-0 Taint=NoSchedule
 k3d cluster create CkaCluster02 --agents 1
+kubectl config use-context k3d-CkaCluster01
 #docker exec -it k3d-CkaCluster01-agent-0 /bin/sh -c 'mkdir /data'
