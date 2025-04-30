@@ -1,8 +1,15 @@
 #!/bin/bash
-k3d cluster create CkaCluster01 --agents 2
-#k3d cluster create CkaCluster01 --agents 2 --k3s-arg "--disable=traefik@server:0"  -p "80:80@loadbalancer"  -p "443:443@loadbalancer"
-#kubectl apply -f nginx_deploy.yaml
-
+k3d cluster create CkaCluster01 \
+  --image rancher/k3s:v1.31.5-k3s1 \
+  --servers 1   --agents 2 \
+  --k3s-arg "--disable=traefik@server:*" \
+  --port '80:80@loadbalancer' \
+  --port '443:443@loadbalancer'
+kubectl apply -f nginx_deploy.yaml
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/name=ingress-nginx \
+  --timeout=180s
 
 kubectl config use-context k3d-CkaCluster01
 kubectl apply -f k3d-CkaCluster01.yaml
