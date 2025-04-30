@@ -1,9 +1,21 @@
 #!/bin/bash
 
-k3d cluster create CkaCluster01 --agents 2 --k3s-arg "--disable=traefik@server:*"
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml
+k3d cluster create CkaCluster01 --agents 2 \
+  --k3s-arg "--disable=traefik@server:0" \
+  -p "80:80@loadbalancer" \ 
+  -p "443:443@loadbalancer
 
+# 删除 Traefik 的 Deployment 和 Service
+kubectl delete -n kube-system deploy traefik
+kubectl delete -n kube-system svc traefik
 
+# 确保删除 CRD (防止自动重建)
+kubectl delete crd ingressroutes.traefik.io ingressroutetcps.traefik.io ingressrouteudps.traefik.io
+
+curl -sL https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml | \
+  sed 's|registry.k8s.io/ingress-nginx|registry.cn-hangzhou.aliyuncs.com/google_containers|g' | \
+  kubectl apply -f -
+  
 k3d cluster create mycluster --k3
 kubectl config use-context k3d-CkaCluster01
 kubectl apply -f k3d-CkaCluster01.yaml
