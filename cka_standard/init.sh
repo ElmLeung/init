@@ -1,26 +1,10 @@
 #!/bin/bash
 
-k3d cluster create CkaCluster01 --agents 2  --k3s-arg "--disable=local-storage@server:*"
+k3d cluster create CkaCluster01 --agents 2 --k3s-arg "--disable=traefik@server:*"
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml
 
-# Change to the latest supported snapshotter release branch
-SNAPSHOTTER_BRANCH=release-6.3
 
-# Apply VolumeSnapshot CRDs
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/${SNAPSHOTTER_BRANCH}/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/${SNAPSHOTTER_BRANCH}/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/${SNAPSHOTTER_BRANCH}/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
-
-# Change to the latest supported snapshotter version
-SNAPSHOTTER_VERSION=v6.3.3
-
-# Create snapshot controller
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/${SNAPSHOTTER_VERSION}/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/${SNAPSHOTTER_VERSION}/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
-
-git clone https://github.com/kubernetes-csi/csi-driver-host-path.git
-cd csi-driver-host-path
-bash deploy/kubernetes-latest/deploy.sh
-
+k3d cluster create mycluster --k3
 kubectl config use-context k3d-CkaCluster01
 kubectl apply -f k3d-CkaCluster01.yaml
 kubectl label pods -n kube-system --all exam-task=cka-demo
