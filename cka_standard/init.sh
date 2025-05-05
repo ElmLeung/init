@@ -15,8 +15,11 @@ kubectl delete helmchart traefik -n kube-system 2>/dev/null
 kubectl apply -f nginx_deploy.yaml
 # 检查 nginx ingress controller
 kubectl wait -n ingress-nginx --for=condition=ready `kubectl get pods -n ingress-nginx -o name|grep controller` --timeout=180s
-# 部署 openEBS
-kubectl apply -f https://openebs.github.io/charts/openebs-operator.yaml
+# 部署 csi-hostpath-driver
+git clone https://github.com/kubernetes-csi/csi-driver-host-path.git
+cd csi-driver-host-path
+./deploy/kubernetes-1.31/deploy.sh
+cd ..
 # 部署题目
 kubectl config use-context k3d-CkaCluster01
 kubectl apply -f kube_CkaCluster01.yaml

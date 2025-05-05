@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: pv-volume #pvc 名字
 spec:
-  storageClassName: openebs-localpv
+  storageClassName: csi-hostpath-sc
   accessModes:
     - ReadWriteOnce 
   resources:
