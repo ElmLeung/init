@@ -1,5 +1,6 @@
 #!/bin/bash
 mkdir /data
+mkdir /srv/app-config
 chmod 777 /data
 k3d cluster create CkaCluster01 \
   --image rancher/k3s:v1.31.5-k3s1 \
@@ -19,15 +20,28 @@ kubectl wait -n ingress-nginx --for=condition=ready `kubectl get pods -n ingress
 git clone https://github.com/kubernetes-csi/csi-driver-host-path.git
 cd csi-driver-host-path
 ./deploy/kubernetes-1.31/deploy.sh
+kubectl wait -n default --for=condition=ready pod/csi-hostpathplugin-0 --timeout=300s
 cd ..
-# 部署题目
+# 配置题目
 kubectl config use-context k3d-CkaCluster01
 kubectl apply -f kube_CkaCluster01.yaml
+
+#ETCD 集群
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+chmod +x ./kind
+mv ./kind /usr/local/bin/kind
+## docker cp ckaetcd-control-plane:/etc/kubernetes/pki/etcd/ca.crt .
+## docker cp ckaetcd-control-plane:/etc/kubernetes/pki/etcd/server.crt .
+## docker cp ckaetcd-control-plane:/etc/kubernetes/pki/etcd/server.key .
+kind create cluster --name ckaetcd
+
+
+kubectl run ckarestore --image=nginx
 
 kubectl label pods -n kube-system --all exam-task=cka-demo
 kubectl label nodes k3d-ckacluster01-agent-0 exam-task=cka-demo
 kubectl label nodes k3d-ckacluster01-server-0 Taint=NoSchedule
 k3d cluster create CkaCluster02 --agents 1
 kubectl config use-context k3d-CkaCluster01
-mkdir /srv/app-config
-#docker exec -it k3d-CkaCluster01-agent-0 /bin/sh -c 'mkdir /data'
+
+
