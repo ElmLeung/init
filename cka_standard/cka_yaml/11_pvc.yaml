@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pv-volume #pvc 名字
+spec:
+  storageClassName: csi-hostpath-sc 
+  accessModes:
+    - ReadWriteOnce 
+  resources:
+    requests:
+      storage: 10Mi
