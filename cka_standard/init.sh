@@ -22,6 +22,7 @@ cd csi-driver-host-path
 ./deploy/kubernetes-1.31/deploy.sh
 kubectl wait -n default --for=condition=ready pod/csi-hostpathplugin-0 --timeout=300s
 cd ..
+
 # 配置题目
 kubectl config use-context k3d-CkaCluster01
 kubectl apply -f kube_CkaCluster01.yaml
@@ -30,13 +31,49 @@ kubectl apply -f kube_CkaCluster01.yaml
 curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
 chmod +x ./kind
 mv ./kind /usr/local/bin/kind
-## docker cp ckaetcd-control-plane:/etc/kubernetes/pki/etcd/ca.crt .
-## docker cp ckaetcd-control-plane:/etc/kubernetes/pki/etcd/server.crt .
-## docker cp ckaetcd-control-plane:/etc/kubernetes/pki/etcd/server.key .
-kind create cluster --name ckaetcd
 
+# 创建 Kind 集群，指定集群名字为 ckarestore
+cat <<EOF | kind create cluster --config=-
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: ckarestore01
+nodes:
+- role: control-plane
+  extraMounts:
+  - hostPath: /tmp/etcd-backup
+    containerPath: /var/lib/etcd-backup
+EOF
 
+kubectl config use-context kind-ckaetcd
 kubectl run ckarestore --image=nginx
+# 安装 etcdctl
+ETCD_VER=v3.5.4
+GOOGLE_URL=https://storage.googleapis.com/etcd
+GITHUB_URL=https://github.com/etcd-io/etcd/releases/download
+DOWNLOAD_URL=${GOOGLE_URL}
+
+rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
+rm -rf /tmp/etcd-download-test && mkdir -p /tmp/etcd-download-test
+
+curl -L ${DOWNLOAD_URL}/${ETCD_VER}/etcd-${ETCD_VER}-linux-amd64.tar.gz -o /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
+tar xzvf /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz -C /tmp/etcd-download-test --strip-components=1
+rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
+
+sudo mv /tmp/etcd-download-test/etcdctl /usr/local/bin/
+
+# 获取 etcd 容器 ID
+ETCD_CONTAINER_ID=$(docker ps | grep etcd | awk '{print $1}')
+
+# 配置 etcdctl 环境变量
+export ETCDCTL_API=3
+export ETCDCTL_ENDPOINTS=https://127.0.0.1:2379
+export ETCDCTL_CACERT=/etc/kubernetes/pki/etcd/ca.crt
+export ETCDCTL_CERT=/etc/kubernetes/pki/etcd/peer.crt
+export ETCDCTL_KEY=/etc/kubernetes/pki/etcd/peer.key
+
+# 执行 etcd 备份
+docker exec -it $ETCD_CONTAINER_ID etcdctl snapshot save /var/lib/etcd-backup/snapshot_restore.db
+
 
 kubectl label pods -n kube-system --all exam-task=cka-demo
 kubectl label nodes k3d-ckacluster01-agent-0 exam-task=cka-demo
