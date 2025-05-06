@@ -41,7 +41,7 @@ mv ./kind /usr/local/bin/kind
 cat <<EOF | kind create cluster --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
-name: ckaetcd02
+name: ckaetcd
 nodes:
 - role: control-plane
   image: m.daocloud.io/docker.io/kindest/node:v1.30.10
@@ -73,12 +73,24 @@ docker exec  ckaetcd-control-plane /bin/bash -c "ETCDCTL_API=3 etcdctl --endpoin
 
 kubectl delete pod ckarestore
 
+cat <<EOF | kind create cluster --config=-
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: ckaetcd03
+nodes:
+- role: control-plane
+  image: m.daocloud.io/docker.io/kindest/node:v1.30.10
+  extraMounts:
+  - hostPath: /tmp/etcd-backup
+    containerPath: /var/lib/etcd-backup
+- role: worker
+  image: m.daocloud.io/docker.io/kindest/node:v1.30.10
+EOF
+
+docker exec  ckaetcd03-worker /bin/sh -c "systemctl disable kubelet --now"
 
 # 创建 CkaCluster02 集群
 k3d cluster create CkaCluster02 --agents 1
 kubectl config use-context k3d-CkaCluster01
 
 
-ctr image push --user cn-south-1@HST3W111MYCGI0CHAG2I:65192383770272e284cb6456b559bc1ed5cee935ffc14537af8aae38b8705238 swr.cn-south-1.myhuaweicloud.com//{镜像名称}:{版本名称}
-sudo docker tag kindest/node:v1.27.3 swr.cn-south-1.myhuaweicloud.com/elm/node:v1.27.3
-sudo docker push swr.cn-south-1.myhuaweicloud.com/elm/node:v1.27.3
