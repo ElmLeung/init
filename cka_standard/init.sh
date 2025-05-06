@@ -1,7 +1,9 @@
 #!/bin/bash
-mkdir /data
+mkdir /etcd_backup 
 mkdir /srv/app-config
+mkdir /data/etcd
 chmod 777 /data
+chmod 777 /etcd_backup
 k3d cluster create CkaCluster01 \
   --image rancher/k3s:v1.31.5-k3s1 \
   --servers 1   --agents 2 \
@@ -36,7 +38,7 @@ mv ./kind /usr/local/bin/kind
 cat <<EOF | kind create cluster --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
-name: ckarestore01
+name: ckaetcd
 nodes:
 - role: control-plane
   extraMounts:
