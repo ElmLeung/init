@@ -42,7 +42,7 @@ name: ckaetcd
 nodes:
 - role: control-plane
   extraMounts:
-  - hostPath: /tmp/etcd-backup
+  - hostPath: /etcd_backup
     containerPath: /var/lib/etcd-backup
 EOF
 
@@ -61,20 +61,16 @@ curl -L ${DOWNLOAD_URL}/${ETCD_VER}/etcd-${ETCD_VER}-linux-amd64.tar.gz -o /tmp/
 tar xzvf /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz -C /tmp/etcd-download-test --strip-components=1
 rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
 
-sudo mv /tmp/etcd-download-test/etcdctl /usr/local/bin/
+sudo cp /tmp/etcd-download-test/etcdctl /etcd_backup
 
 # 获取 etcd 容器 ID
 ETCD_CONTAINER_ID=$(docker ps | grep etcd | awk '{print $1}')
 
-# 配置 etcdctl 环境变量
-export ETCDCTL_API=3
-export ETCDCTL_ENDPOINTS=https://127.0.0.1:2379
-export ETCDCTL_CACERT=/etc/kubernetes/pki/etcd/ca.crt
-export ETCDCTL_CERT=/etc/kubernetes/pki/etcd/peer.crt
-export ETCDCTL_KEY=/etc/kubernetes/pki/etcd/peer.key
-
 # 执行 etcd 备份
-docker exec -it $ETCD_CONTAINER_ID etcdctl snapshot save /var/lib/etcd-backup/snapshot_restore.db
+docker exec  $ETCD_CONTAINER_ID /bin/sh -c "cp /var/lib/etcd-backup/etcdctl /usr/local/bin && chmod +x /usr/local/bin/etcdctl"
+docker exec  $ETCD_CONTAINER_ID /bin/bash -c "ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt  --key=/etc/kubernetes/pki/etcd/server.key  snapshot save /var/lib/etcd-backup/etcd-restore.db"
+
+kubectl delete pod ckarestore
 
 
 kubectl label pods -n kube-system --all exam-task=cka-demo
