@@ -28,6 +28,9 @@ cd ..
 # 配置题目
 kubectl config use-context k3d-CkaCluster01
 kubectl apply -f kube_CkaCluster01.yaml
+kubectl label pods -n kube-system --all exam-task=cka-demo
+kubectl label nodes k3d-ckacluster01-agent-0 exam-task=cka-demo
+kubectl label nodes k3d-ckacluster01-server-0 Taint=NoSchedule
 
 #ETCD 集群
 curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
@@ -38,9 +41,10 @@ mv ./kind /usr/local/bin/kind
 cat <<EOF | kind create cluster --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
-name: ckaetcd
+name: ckaetcd02
 nodes:
 - role: control-plane
+  image: m.daocloud.io/docker.io/kindest/node:v1.30.10
   extraMounts:
   - hostPath: /etcd_backup
     containerPath: /var/lib/etcd-backup
@@ -63,20 +67,18 @@ rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
 
 sudo cp /tmp/etcd-download-test/etcdctl /etcd_backup
 
-# 获取 etcd 容器 ID
-ETCD_CONTAINER_ID=$(docker ps | grep etcd | awk '{print $1}')
-
 # 执行 etcd 备份
-docker exec  $ETCD_CONTAINER_ID /bin/sh -c "cp /var/lib/etcd-backup/etcdctl /usr/local/bin && chmod +x /usr/local/bin/etcdctl"
-docker exec  $ETCD_CONTAINER_ID /bin/bash -c "ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt  --key=/etc/kubernetes/pki/etcd/server.key  snapshot save /var/lib/etcd-backup/etcd-restore.db"
+docker exec  ckaetcd-control-plane /bin/sh -c "cp /var/lib/etcd-backup/etcdctl /usr/local/bin && chmod +x /usr/local/bin/etcdctl"
+docker exec  ckaetcd-control-plane /bin/bash -c "ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt  --key=/etc/kubernetes/pki/etcd/server.key  snapshot save /var/lib/etcd-backup/etcd-restore.db"
 
 kubectl delete pod ckarestore
 
 
-kubectl label pods -n kube-system --all exam-task=cka-demo
-kubectl label nodes k3d-ckacluster01-agent-0 exam-task=cka-demo
-kubectl label nodes k3d-ckacluster01-server-0 Taint=NoSchedule
+# 创建 CkaCluster02 集群
 k3d cluster create CkaCluster02 --agents 1
 kubectl config use-context k3d-CkaCluster01
 
 
+ctr image push --user cn-south-1@HST3W111MYCGI0CHAG2I:65192383770272e284cb6456b559bc1ed5cee935ffc14537af8aae38b8705238 swr.cn-south-1.myhuaweicloud.com//{镜像名称}:{版本名称}
+sudo docker tag kindest/node:v1.27.3 swr.cn-south-1.myhuaweicloud.com/elm/node:v1.27.3
+sudo docker push swr.cn-south-1.myhuaweicloud.com/elm/node:v1.27.3
