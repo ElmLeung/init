@@ -93,18 +93,6 @@ docker exec  ckaetcd03-worker /bin/sh -c "systemctl disable kubelet --now"
 docker update --memory 800M ckaetcd03-control-plane
 docker update --memory 600M ckaetcd03-worker
 
-# 创建 CkaCluster02 集群
-k3d cluster create CkaCluster02 \
-  --agents 1 \
-  --kubeconfig-update-default=false \
-  --k3s-arg "--disable=traefik,local-storage" \
-  --k3s-arg "--kubelet-arg=eviction-hard=memory.available<50Mi@agent:*" \
-  --k3s-arg "--kubelet-arg=system-reserved=memory=100Mi@agent:*" \
-  --k3s-arg "--kubelet-arg=eviction-hard=memory.available<100Mi@server:*" \
-  --k3s-arg "--kubelet-arg=system-reserved=memory=200Mi@server:*" \
-  --k3s-server-arg "--disable-kube-proxy" \
-  --k3s-agent-arg "--disable-kube-proxy" \
-  --k3s-arg "--flannel-backend=none"
 kubectl config use-context k3d-CkaCluster01
 
 
